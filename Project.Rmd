@@ -1,0 +1,83 @@
+---
+title: "Practical machine learning course project"
+author: "Turan"
+date: "31 January 2016"
+output: html_document
+---
+
+#Part 1: Reading the data
+
+I will first start by reading and uploading the data. Note that the testing data is untouched and will only be used for testing the results of the final model.
+
+```{r Read Data,cache=TRUE}
+library(caret,quietly = TRUE)
+
+#Enter directory where you installed the data below
+trainingpath="C:/Coursera/pml-training.csv"
+testingpath="C:/Coursera/pml-testing.csv"
+
+mainData=read.csv(trainingpath)
+FinaltestingData=read.csv(testingpath)
+```
+
+#Part 2: Partition the data and Cross Validation
+
+After reading the data, I will partition the data into training and testing. Training will be used to train the models and testing will be used to test the strength of each model tested.
+
+```{r Partition data}
+set.seed(42) #setting the seed for reproducibility
+
+partitionIndex=createDataPartition(mainData$classe,p=0.7,list = FALSE)
+training=mainData[partitionIndex,]
+testing=mainData[-partitionIndex,]
+```
+
+Please note that with further partitioning the data into 70/30 percent partitions, I am implicitly using Random sub sampling.
+
+#Part 3: Data preprocessing
+
+There are are 160 variables in the training set. In this part, I will look at the summary statistics of these variables to confine the data set so that it is ready for modeling. Some of the results of the codes are very length therefore for some parts only the code is submitted.
+
+```{r Clean data1, results="hide"}
+summary(training)
+```
+
+The summary of the variables suggest that the following variables can be excluded due to too many missing values or too many #Div/0 or empty values.
+Excluding these variables, the data source reduces to 58 variables (including the prediction variable). The code for this part is as follows:
+
+```{r Clean data2, results="hide"}
+training2=training[,-c(1:2,12:36,50:59,69:83,87:101,103:112,125:139,141:150)]
+summary(training2)
+```
+
+The summary on training2 revealed that all the variables having 97% or more missing values are eliminated from the data set.
+
+#Part 4: Model Building
+
+Since the predicted variable is a class variable, a sensible choice of model is random forest. 
+
+```{r Rpart model, cache=TRUE}
+model1=train(factor(classe)~.,method="rpart",data=training2)
+```
+
+The results of the *model1* is illustrated in the appendix.
+
+Next I will predict new variables as
+```{r Prediction}
+confusionMatrix(predict(model1,newdata=testing[,-160]),testing[,160])
+```
+
+From the results above, it can be observed that the out of sample error is 62%. 
+
+Next I will apply these results 20 cases that will be used in the quiz.
+```{r Quiz results}
+predict(model1,newdata = FinaltestingData)
+```
+
+#Appendix:
+
+*Figure 1: Rpart plot*
+```{r Rpart plot, echo=FALSE}
+library(rattle,quietly = TRUE)
+fancyRpartPlot(model1$finalModel)
+```
